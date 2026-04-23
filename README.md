@@ -9,7 +9,7 @@ The analysis includes:
 * Data merging and cleaning
 * Descriptive statistics
 * Data visualization
-* Cross-sectional and panel regressions (OLS with and without fixed effects)
+* Cross-sectional and panel regressions (OLS with and without Fixed Effects)
 * Time-series analysis (growth rates and stationarity tests)
 * Economic interpretation of results
 
