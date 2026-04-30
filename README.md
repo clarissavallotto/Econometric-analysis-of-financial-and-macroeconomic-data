@@ -2,18 +2,30 @@
 
 ## Overview
 
-This project performs a comprehensive empirical analysis of fictitious financial and macroeconomic data using Python. It combines **financial statement data, loan-level data, and macroeconomic time series** to study relationships between firm characteristics, lending behavior, credit cycles, and macroeconomic indicators.
+This project performs a comprehensive empirical analysis of fictitious financial and macroeconomic data using Python. It combines **financial statement data, loan-level data, lending panel datasets, and macroeconomic time series** to study relationships between firm characteristics, lending behavior, credit cycles, and macroeconomic indicators.
 
 The analysis includes:
 
 * Data merging and cleaning
+* Construction of financial and macroeconomic variables
 * Descriptive statistics
 * Data visualization
-* Cross-sectional and panel regressions (OLS with and without Fixed Effects)
-* Time-series analysis (growth rates and stationarity tests)
+* Cross-sectional and panel regressions (OLS and Fixed Effects)
+* Time-series analysis (growth rates, ARIMA models, stationarity tests)
+* Credit exposure aggregation and lending risk analysis
 * Economic interpretation of results
 
 The project is designed for use in a [**Google Colab**](https://colab.research.google.com/) environment.
+
+---
+
+## Objective
+
+To examine how firm characteristics and macroeconomic conditions influence:
+- **loan pricing**   
+- **lender profitability**  
+- **credit growth** 
+- **credit risk (NPLs)**
 
 ---
 
@@ -34,6 +46,9 @@ It contains multiple sheets:
 | `data_A`              | Macroeconomic data (GDP, debt, interest rates)             |
 | `data_B`              | Lender-level panel data                                      |
 | `data_C`              | Quarterly macro-financial time series                      |
+| `data_D`               | Cross-country panel data |
+| `data_creditor`        | Creditor-level exposure data |
+| `data_exposure`        | Exposure-level lending data |
 
 ---
 
@@ -43,10 +58,13 @@ The following Python libraries are required:
 
 ```python
 pandas
+numpy
 matplotlib
 statsmodels
-google.colab (for Colab file handling)
+scipy
+linearmodels
 openpyxl (for Excel file operations)
+google.colab (for Colab file handling)
 ```
 
 ---
@@ -59,22 +77,15 @@ openpyxl (for Excel file operations)
 * If not, prompts the user to upload it
 * Loads multiple sheets into pandas DataFrames
 
----
+### 2. Data Merging & Cleaning
 
-### 2. Data Merging
-
-* Merges:
-
-  * Loan data (`df_loan`)
-  * Financial statements (`df_financial`)
-* Join key: `c_id` (firm ID)
+* Merges loan and financial statement data using `c_id`
+* Checks uniqueness of financial statement keys
 * Left join ensures all loan observations are retained
 
 ```python
 merged_df = pd.merge(df_loan, df_financial, on = 'c_id', how = 'left')
 ```
-
----
 
 ### 3. Variable Construction
 
@@ -83,175 +94,194 @@ New variables are created, including:
 * **Interest expense**
 * **Debt-to-GDP ratio**
 * **Loans-to-assets ratio**
-* **Operating expense ratios**
+* **Operating expense ratio**
+* **Real Total Credit (RTC)**
 * **Annual growth rates (GDP, credit)**
-
----
+* **Credit composition shares (households vs firms)**  
+* **Exposure indicators (domestic, large exposure flags)**
 
 ### 4. Descriptive Statistics
 
-Computes:
+Computes
 
-* Mean
-* Median
+* mean
+* median
 * 25th and 75th percentiles
-* Minimum and maximum
+* minimum and maximum
 
-For:
+for
 
-* Leverage
-* Employees
-* Loan amount
+* leverage
+* employees
+* loan amount
 * ROA
 
-Output is:
+Output:
 
-* Printed in markdown format
-* Exported to Excel (`descriptive_statistics.xlsx`)
+* printed in markdown format
+* exported to Excel (`descriptive_statistics.xlsx`)
 
----
+## 5. Regression Analysis
 
-### 5. Data Visualization
-
-#### Scatter Plot
-
-Relationship between:
-
-* Leverage ratio
-* Interest rate (Lender 2 only)
-
-Saved as:
-
-`leverage_ratio_interest_rate.png`
-
-#### Time Series Plots
-
-* Debt-to-GDP ratio over time
-* Interest rate over time
-* Annual GDP and credit growth
-
-Saved as:
-
-* `debt_to_gdp_ratio.png`
-* `interest_rate.png`
-* `annual_growth_rates.png`
-
----
-
-### 6. Regression Analysis
-
-#### Regression 1: Interest Rate Determinants
+### Interest Rate Determinants
 
 ```text
-interest_rate ~ roa + total_assets + public
+interest_rate ~ ROA + total_assets + public
 ```
 
 Findings:
+* ROA → negative and significant effect  
+* firm size → negative and significant effect  
+* public listing → not significant  
 
-* ROA and firm size reduce interest rates
-* Public listing not statistically significant
-
----
-
-#### Regression 2: Lender Profitability (ROE)
+### Lender Profitability
 
 ```text
-roe ~ loans_to_total_assets + exp_operating_to_total_assets + cet1_ratio + gdp + interest_rate
+ROE ~ loans_to_total_assets + exp_operating_to_total_assets + cet1_ratio + gdp + interest_rate
 ```
 
-Includes:
+Clustered standard errors (by lender ID)
 
-* Clustered standard errors (by lender ID)
+Findings:
+* GDP → positive effect on ROE  
+* interest rates → positive effect on ROE  
 
-Key insights:
-
-* GDP and interest rates positively affect ROE
-
----
-
-#### Regression 3: Lender Profitability (ROE) with Fixed Effects
+### Fixed Effects Model
 
 ```text
-roe ~ ... + C(b_id)
+ROE ~ ... + C(b_id)
 ```
 
-Includes:
+Purpose:
+* controls for lender-specific heterogeneity  
 
-* Clustered standard errors (by lender ID)
-* Fixed effects (`C(b_id)`)
+Insight:
+* macro variables remain significant within lenders  
 
-Key insights:
-
-* GDP and interest rates positively affect ROE
-* Fixed effects control for lender-specific heterogeneity
-
----
-
-#### Regression 4: Lender Profitability (ROE) with Interaction Effects
+### Interaction Effects
 
 ```text
-roe ~ ... + interest_rate * C(interest_rate_fixation)
+ROE ~ ... + interest_rate * C(interest_rate_fixation)
 ```
 
-Includes:
+Insight: 
+* fixed vs floating-rate environments differ in sensitivity to macro shocks  
 
-* Clustered standard errors (by lender ID)
-* Interaction effects (`interest_rate * C(interest_rate_fixation)`)
+### Credit Growth
 
-Key insights:
+```text
+RTC_annual_growth ~ GDP_annual_growth + IR_change
+```
+Findings:
+* GDP growth → strong positive effect (procyclicality of credit)
+* interest rate changes → positive and significant effect
 
-* GDP and interest rates positively affect ROE
-* Interaction effects capture differences between fixed-rate and floating-rate environments
+## 6. Macroeconomic Time-Series Analysis
 
----
+Constructed variables:
 
-### 7. Macroeconomic Time Series Analysis
+* GDP annual growth  
+* RTC annual growth  
+* interest rate change  
 
-#### Variables constructed:
+## 7. Stationarity Tests (ADF)
 
-* Annual real GDP growth rate
-* Annual real total credit to non-financial private sector (RTC) growth rate
-* Annual change in the interest rate
+* GDP growth → stationary  
+* RTC growth → weakly stationary  
+* interest rate change → strongly stationary  
 
-#### Key insight:
+## 8. Time-Series Models
 
-* Credit is **procyclical** (moves with GDP)
+Applied models:
 
----
+* AR(1)  
+* MA(1)  
+* ARIMA(1,0,1)  
 
-### 8. Stationarity Testing (ADF Test)
+Selection criteria:
+* Akaike Information Criterion (AIC)  
+* Bayesian Information Criterion (BIC)  
 
-Augmented Dickey-Fuller tests applied to:
+## 9. Cross-Country Panel Analysis 
 
-* Annual real GDP growth rate (independent variable): stationary 
-* RTC growth rate (dependent variable): weakly stationary
-* Annual change in the interest rate (independent variable): strongly stationary
+## Cross-Country Panel Analysis
 
-This ensures regression validity and avoids **spurious regression problems**.
+### Baseline Fixed Effects Model (NPL)
 
----
+```text
+NPLRatio ~ GDPgrowth + UnemplRate
+```
+
+* country and time fixed effects included
+* clustered standard errors at country level
+
+### Dynamic Panel Model (NPL Persistence)
+
+```text
+NPLRatio ~ GDPgrowth + UnemplRate + NPL_lag
+```
+
+Purpose:
+* captures persistence in non-performing loans
+* allows for dynamic adjustment of credit risk
+
+### Country-Specific Regressions
+
+Estimated using OLS on country-level subsamples (Germany, Denmark):
+
+```text
+NPLRatio ~ GDPgrowth + UnemplRate
+```
+Insight:
+* sensitivity of NPLs to macroeconomic conditions differs across countries
+
+### ROE and Macroeconomic Conditions (Panel FE)
+
+```text
+ROE ~ GDPgrowth + UnemplRate
+```
+
+Findings:
+* unemployment → negative effect on profitability
+* GDP growth → weak positive effect
+
+### ROE with Lagged Macroeconomic Variables
+
+```text
+ROE ~ GDPgrowth + UnemplRate + GDP_lag + Unemp_lag
+```
+
+Purpose:
+* captures delayed effects of macroeconomic conditions on profitability
+
+### Dynamic ROE Model (Persistence)
+
+```text
+ROE ~ GDPgrowth + UnemplRate + ROE_lag
+```
+
+Purpose:
+* accounts for persistence in profitability over time
+
+## 10. Credit Exposure Analysis
+
+Key features:
+
+* domestic vs cross-border exposures  
+* large exposure (>10% assets)  
+* aggregation by creditor country  
+* time evolution of exposures  
+
 
 ## Key Economic Insights
 
-1. **Risk-based pricing**
-
-   * Higher leverage → higher interest rates
-
-2. **Firm fundamentals matter**
-
-   * Larger and more profitable firms borrow more cheaply
-
-3. **Macroeconomic conditions matter**
-
-   * GDP growth strongly affects lender profitability and credit expansion
-
-4. **Credit cycles are procyclical**
-
-   * Credit expands during economic booms and contracts during recessions
-
-5. **Interest rates reflect macro conditions**
-
-   * Often rise during strong economic periods
+* risk-based pricing dominates lending  
+* firm size and profitability reduce borrowing costs  
+* credit appears procyclical in the sample
+* macroeconomic conditions drive lending performance  
+* unemployment is a strong predictor of credit risk 
+* NPL ratios exhibit persistence over time 
+* lending systems are heterogeneous across countries
 
 ---
 
@@ -260,20 +290,55 @@ This ensures regression validity and avoids **spurious regression problems**.
 The script generates:
 
 ### Excel Files
+* `descriptive_statistics.xlsx`  
 
-* `descriptive_statistics.xlsx`
-
-### HTML Regression Outputs
-
-* `regression_summary_ir.html`
-* `regression_summary_roe.html`
-* `regression_summary_roe_FE.html`
-* `regression_summary_roe_ir_fix.html`
-* `regression_summary_RTC_growth.html`
+### HTML Regression Outputs (HTML)
+* `regression_summary_IR.html`
+* `regression_summary_ROE.html`
+* `regression_summary_ROE_FE.html`
+* `regression_summary_ROE_IR_fix.html`
+* `regression_summary_RTC_growth_IRc.html`
+* `regression_summary_NPL_panel.html`
+* `regression_summary_NPL_DE.html`
+* `regression_summary_NPL_DK.html`
+* `regression_summary_NPL_lag_panel.html`
+* `regression_summary_ROE_unempl_panel.html`
+* `regression_summary_ROE_unempl_lag_panel.html`
+* `regression_summary_ROE_lag_panel.html`
+* `regression_summary_TC_growth_AIC.html`
+* `regression_summary_TC_FD_AIC.html`
 
 ### Figures
-
-* `leverage_ratio_interest_rate.png`
-* `debt_to_gdp_ratio.png`
-* `interest_rate.png`
+* `leverage_ratio_interest_rate.png`  
+* `debt_to_gdp_ratio.png`  
+* `interest_rate.png`  
 * `annual_growth_rates.png`
+* `annual_TC_growth_rate_contributions.png`  
+* `ROE_unemployment_rate.png`  
+* `ROE_GDP_growth.png`  
+* `change_agg_exposure_creditor_country.png`  
+
+Inside `plots` folder:
+* `GDP_timeseries.png`
+* `PGDP_timeseries.png`
+* `TC_timeseries.png`
+* `HHTC_timeseries.png`
+* `NFCTC_timeseries.png`
+* `IR_timeseries.png`
+
+---
+
+## How to Run
+
+1. Open [**Google Colab**](https://colab.research.google.com/)  
+2. Upload the script 
+3. Upload `data.xlsx` when prompted  
+4. Run the code
+
+---
+
+## Limitations
+
+- data is fictitious   
+- potential issues: omitted variables, endogeneity, measurement error  
+- project designed for small-to-medium datasets
