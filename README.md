@@ -11,7 +11,9 @@ The analysis includes:
 * Descriptive statistics
 * Data visualization
 * Cross-sectional and panel regressions (OLS and Fixed Effects)
+* Hausman tests for Fixed vs Random Effects model selection
 * Time-series analysis (growth rates, ARIMA models, stationarity tests)
+* Model selection using information criteria (AIC and BIC)
 * Credit exposure aggregation and lending risk analysis
 * Economic interpretation of results
 
@@ -24,7 +26,7 @@ The project is designed for use in a [**Google Colab**](https://colab.research.g
 To examine how firm characteristics and macroeconomic conditions influence:
 - **loan pricing**   
 - **lender profitability**  
-- **credit growth** 
+- **credit growth**
 - **credit risk (NPLs)**
 
 ---
@@ -164,7 +166,7 @@ Insight:
 ROE ~ ... + interest_rate * C(interest_rate_fixation)
 ```
 
-Insight: 
+Insight:
 * fixed vs floating-rate environments differ in sensitivity to macro shocks  
 
 ### Credit Growth
@@ -180,40 +182,54 @@ Findings:
 
 Constructed variables:
 
-* GDP annual growth  
+* GDP annual growth
+* TC annual growth
+* TC First Difference
 * RTC annual growth  
 * interest rate change  
 
-## 7. Stationarity Tests (ADF)
+## 7. ADF Stationarity Test and Seasonal Decomposition
 
 * GDP growth → stationary  
+* TC growth → stationary  
+* TC First Didderence → stationary  
 * RTC growth → weakly stationary  
 * interest rate change → strongly stationary  
+
+## Seasonal Decomposition
+Decomposed into:
+Trend
+Seasonality
+Residual
 
 ## 8. Time-Series Models
 
 Applied models:
 
-* AR(1)  
-* MA(1)  
-* ARIMA(1,0,1)  
+* AR(p)  
+* MA(q)  
+* ARMA(p,q)  
 
 Selection criteria:
+* diagnostic checks using ACF and PACF plots
 * Akaike Information Criterion (AIC)  
 * Bayesian Information Criterion (BIC)  
 
-## 9. Cross-Country Panel Analysis 
+## 9. Cross-Country Panel Analysis
 
 ## Cross-Country Panel Analysis
 
-### Baseline Fixed Effects Model (NPL)
+### Fixed Effects and Random Effects Models (NPL)
 
 ```text
 NPLRatio ~ GDPgrowth + UnemplRate
 ```
 
-* country and time fixed effects included
+* country and time Fixed Effects included
 * clustered standard errors at country level
+
+* the Random Effects model assumes that unobserved country-specific effects are uncorrelated with the explanatory variables.
+This allows for more efficient estimation compared to Fixed Effects when the assumption holds.
 
 ### Dynamic Panel Model (NPL Persistence)
 
@@ -279,8 +295,8 @@ Key features:
 * firm size and profitability reduce borrowing costs  
 * credit appears procyclical in the sample
 * macroeconomic conditions drive lending performance  
-* unemployment is a strong predictor of credit risk 
-* NPL ratios exhibit persistence over time 
+* unemployment is a strong predictor of credit risk
+* NPL ratios exhibit persistence over time
 * lending systems are heterogeneous across countries
 
 ---
@@ -291,32 +307,60 @@ The script generates:
 
 ### Excel Files
 * `descriptive_statistics.xlsx`  
+* `correlation_matrix.xlsx`
+* `correlation_matrix_A.xlsx`
+* `correlation_matrix_B.xlsx`
+* `correlation_matrix_C.xlsx`
+* `correlation_matrix_D.xlsx`
 
 ### HTML Regression Outputs (HTML)
 * `regression_summary_IR.html`
+* `regression_summary_IR_W.html`
 * `regression_summary_ROE.html`
 * `regression_summary_ROE_FE.html`
 * `regression_summary_ROE_IR_fix.html`
 * `regression_summary_RTC_growth_IRc.html`
-* `regression_summary_NPL_panel.html`
-* `regression_summary_NPL_DE.html`
-* `regression_summary_NPL_DK.html`
-* `regression_summary_NPL_lag_panel.html`
-* `regression_summary_ROE_unempl_panel.html`
-* `regression_summary_ROE_unempl_lag_panel.html`
-* `regression_summary_ROE_lag_panel.html`
+* `regression_summary_RTC_growth_IRc_W.html`
 * `regression_summary_TC_growth_AIC.html`
 * `regression_summary_TC_FD_AIC.html`
+* `regression_summary_NPL_FE.html`
+* `regression_summary_NPL_RE.html`
+* `regression_summary_NPL_DE.html`
+* `regression_summary_NPL_DE_W.html`
+* `regression_summary_NPL_DK.html`
+* `regression_summary_NPL_DK_W.html`
+* `regression_summary_NPL_lag_FE.html`
+* `regression_summary_NPL_lag_RE.html`
+* `regression_summary_ROE_FE.html`
+* `regression_summary_ROE_RE.html`
+* `regression_summary_ROE2_FE.html`
+* `regression_summary_ROE2_RE.html`
+* `regression_summary_ROE_lag_FE.html`
+* `regression_summary_ROE_lag_RE.html`
 
 ### Figures
 * `leverage_ratio_interest_rate.png`  
 * `debt_to_gdp_ratio.png`  
 * `interest_rate.png`  
 * `annual_growth_rates.png`
-* `annual_TC_growth_rate_contributions.png`  
+* `annual_TC_growth_rate_contributions.png`
+* `ACF_TC_annual_growth.png`
+* `PACF_TC_annual_growth.png`
+* `ACF_TC_FD.png`
+* `PACF_TC_FD.png`
+* `seasonal_decomposition_RTC.png`
+* `seasonal_decomposition_GDP_gr.png`
+* `seasonal_decomposition_TC_gr.png`
+* `seasonal_decomposition_TC_FD.png`
+* `seasonal_decomposition_IR_change.png`
 * `ROE_unemployment_rate.png`  
 * `ROE_GDP_growth.png`  
-* `change_agg_exposure_creditor_country.png`  
+* `change_agg_exposure_creditor_country.png`
+* `correlation_matrix.png`
+* `correlation_matrix_A.png`
+* `correlation_matrix_B.png`
+* `correlation_matrix_C.png`
+* `correlation_matrix_D.png`  
 
 Inside `plots` folder:
 * `GDP_timeseries.png`
@@ -331,7 +375,7 @@ Inside `plots` folder:
 ## How to Run
 
 1. Open [**Google Colab**](https://colab.research.google.com/)  
-2. Upload the script 
+2. Upload the script
 3. Upload `data.xlsx` when prompted  
 4. Run the code
 
