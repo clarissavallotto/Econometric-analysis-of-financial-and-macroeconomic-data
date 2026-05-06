@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
 import os
@@ -8,7 +9,8 @@ import os
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.seasonal import seasonal_decompose
 from statsmodels.tsa.arima.model import ARIMA
-from linearmodels.panel import PanelOLS
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+from linearmodels.panel import PanelOLS, RandomEffects
 from scipy import stats
 from google.colab import files
 
@@ -57,10 +59,24 @@ print(desc_stats.to_markdown())
 desc_stats.to_excel("descriptive_statistics.xlsx", sheet_name = "ds")
 files.download("descriptive_statistics.xlsx")
 
+# Correlation matrix
+corr_matrix_merged = merged_df[['leverage', 'employees', 'loan_amount', 'roa']].corr()
+print("\n", corr_matrix_merged, "\n")
+
+# Export correlation matrix to Excel
+corr_matrix_merged.to_excel("correlation_matrix.xlsx", sheet_name = "corr_matrix_merged")
+files.download("correlation_matrix.xlsx")
+
+# plt.figure(figsize = (7, 7))
+sns.heatmap(corr_matrix_merged, annot = True, cmap = 'coolwarm')
+plt.title("Correlation Matrix")
+plt.savefig('correlation_matrix.png')
+plt.show()
+
 # Data quality remark
 print("\nThe minimum number of employees is -98, which is not a valid employee count.\n")
 
-# Scatterplot that shows the relationship between the leverage ratio and the interest rate for loans granted by Lender 2
+# Scatterplot that shows the relationship between leverage and interest rate for loans granted by Lender 2
 b2_df = merged_df[merged_df['b_id'] == 2].copy()
 
 plt.figure(figsize = (14, 7))
@@ -80,8 +96,11 @@ This suggests that as a firm's leverage increases, Lender 2 charges a higher int
 # Regression: interest rate  = α + β_1*roa + β_2*total assets + β_3*public + ε
 formula_ir = 'interest_rate ~ roa + total_assets + public'
 model_ir = smf.ols(formula_ir, data = merged_df).fit()
+model_ir_W = smf.ols(formula_ir, data = merged_df).fit(cov_type = 'HC1') # Heteroskedasticity-robust standard errors (White SE)
 
 print(model_ir.summary())
+
+print("\n", model_ir_W.summary())
 
 # Export regression summary to html function
 def export_summary(model, filename):
@@ -100,13 +119,16 @@ def export_summary(model, filename):
 # Export regression summary to html (open with Excel)
 export_summary(model_ir, "regression_summary_IR.html")
 
+# Export regression summary to html (open with Excel)
+export_summary(model_ir_W, "regression_summary_IR_W.html")
+
 print("""
 The interest rate firms pay is significantly influenced by their profitability (p-value = 0.000 < 0.010) and size (p-value = 0.000 < 0.010).
 More profitable (higher ROA) and larger (higher total assets) firms get lower interest rates."
 There is no statistically significant relationship between the firm being publicly listed and the interest rate (p-value = 0.382).
 
 Omitted Variable Bias:
-the model is missing important variables that likely influence interest rates, such as the firm's leverage ratio and the term of the loan.
+the model omits important variables that likely influence interest rates, such as the firm's leverage ratio and the term of the loan.
 Omitting these variables can lead to biased coefficient estimates.
 
 Multicollinearity:
@@ -122,22 +144,38 @@ df_gdp_debt.rename(columns = {df_gdp_debt.columns[0]: 'Date'}, inplace = True)
 df_gdp_debt['Date'] = pd.to_datetime(df_gdp_debt['Date'])
 df_gdp_debt.set_index('Date', inplace = True)
 
-# debt-to-GDP ratio
+# Debt-to-GDP ratio
 df_gdp_debt['debt_to_GDP_ratio'] = (df_gdp_debt['g_debt'] / df_gdp_debt['GDP']) * 100
 
-# debt-to-GDP ratio in December 2003
-debt_2003 = df_gdp_debt.loc['2003-12-01', 'g_debt']
-gdp_2003 = df_gdp_debt.loc['2003-12-01', 'GDP']
-ratio_2003 = (debt_2003 / gdp_2003) * 100
+# Debt-to-GDP ratio in December 2003
+ratio_2003 = df_gdp_debt.loc['2003-12-01', 'debt_to_GDP_ratio']
+# debt_2003 = df_gdp_debt.loc['2003-12-01', 'g_debt']
+# gdp_2003 = df_gdp_debt.loc['2003-12-01', 'GDP']
+# ratio_2003 = (debt_2003 / gdp_2003) * 100
 print(f"debt-to-GDP ratio in December 2003: {ratio_2003:.2f}%")
 
-# debt-to-GDP ratio in December 2023
-debt_2023 = df_gdp_debt.loc['2023-12-01', 'g_debt']
-gdp_2023 = df_gdp_debt.loc['2023-12-01', 'GDP']
-ratio_2023 = (debt_2023 / gdp_2023) * 100
+# Debt-to-GDP ratio in December 2023
+ratio_2023 = df_gdp_debt.loc['2023-12-01', 'debt_to_GDP_ratio']
+# debt_2023 = df_gdp_debt.loc['2023-12-01', 'g_debt']
+# gdp_2023 = df_gdp_debt.loc['2023-12-01', 'GDP']
+# ratio_2023 = (debt_2023 / gdp_2023) * 100
 print(f"debt-to-GDP ratio in December 2023: {ratio_2023:.2f}%")
 
-# debt-to-GDP ratio plot
+# Correlation matrix
+corr_matrix_A = df_gdp_debt[['GDP', 'g_debt', 'debt_to_GDP_ratio', 'i_rate']].corr()
+print("\n", corr_matrix_A, "\n")
+
+# Export correlation matrix to Excel
+corr_matrix_A.to_excel("correlation_matrix_A.xlsx", sheet_name = "corr_matrix_A")
+files.download("correlation_matrix_A.xlsx")
+
+# plt.figure(figsize = (7, 7))
+sns.heatmap(corr_matrix_A, annot = True, cmap = 'coolwarm')
+plt.title("Correlation Matrix")
+plt.savefig('correlation_matrix_A.png')
+plt.show()
+
+# Debt-to-GDP ratio plot
 plt.figure(figsize = (14, 7))
 plt.plot(df_gdp_debt.index, df_gdp_debt['debt_to_GDP_ratio'], marker = 'o', linestyle = '-', color = 'b')
 plt.title('debt-to-GDP ratio over time', fontsize = 16)
@@ -170,11 +208,25 @@ The interest rate experienced a prolonged decline after 2009, reaching historic 
 
 dfB = pd.read_excel('data.xlsx', sheet_name = "data_B")
 
-# loans-to-total assets ratio
+# Loans-to-total assets ratio
 dfB['loans_to_total_assets'] = dfB['loans'] / dfB['total_assets']
 
-# operating expenses-to-total assets ratio
+# Operating expenses-to-total assets ratio
 dfB['exp_operating_to_total_assets'] = dfB['exp_operating'] / dfB['total_assets']
+
+# Correlation matrix
+corr_matrix_B = dfB[['roe', 'loans_to_total_assets', 'exp_operating_to_total_assets', 'cet1_ratio', 'gdp', 'interest_rate']].corr()
+print("\n", corr_matrix_B, "\n")
+
+# Export correlation matrix to Excel
+corr_matrix_B.to_excel("correlation_matrix_B.xlsx", sheet_name = "corr_matrix_B")
+files.download("correlation_matrix_B.xlsx")
+
+# plt.figure(figsize = (7, 7))
+sns.heatmap(corr_matrix_B, annot = True, cmap = 'coolwarm')
+plt.title("Correlation Matrix")
+plt.savefig('correlation_matrix_B.png')
+plt.show()
 
 # Pooled OLS regression.
 # The standard errors are clustered by Lenders to account for the panel structure and heteroskedasticity (robustness)
@@ -189,9 +241,9 @@ print(model_roe.summary())
 export_summary(model_roe, "regression_summary_ROE.html")
 
 print("""
-Based on the regression results, the following variables have a statistically significant positive effect on ROE:
-- gdp --> The coefficient (0.3437) is positive and significant at a 1% level (p-value = 0.000 < 0.010).
-- interest_rate --> The coefficient (0.8466) is positive and statistically significant at a 1% level (p-value = 0.000 < 0.010).
+Based on the regression results, the following variables have a statistically significant positive association with ROE:
+- gdp --> the coefficient (0.3437) is positive and statistically significant at a 1% level (p-value = 0.000 < 0.010).
+- interest_rate --> the coefficient (0.8466) is positive and statistically significant at a 1% level (p-value = 0.000 < 0.010).
 """)
 
 # Regression: roe  = α + β_1*loans_to_total_assets + β_2*exp_operating_to_total_assets + β_3*cet1_ratio + β_4*gdp + β_5*interest_rate + β_5*FE(Lender) + ε
@@ -205,8 +257,8 @@ export_summary(model_roe_FE, "regression_summary_ROE_FE.html")
 
 print("""
 The purpose of including fixed effects is to control for any unobserved, time-invariant heterogeneity that exists across different Lenders.
-This accounts for unique characteristics of each lender that do not change over the sample period, such as its location.
-By including a dummy variable for each Lender, the fixed effects model isolates the effect of changes within each Lender over time,
+This accounts for unique characteristics of each Lender that do not change over the sample period, such as its location.
+By including a dummy variable for each Lender, the Fixed Effects model isolates the effect of changes within each Lender over time,
 rather than comparing differences between Lenders.
 This results in more reliable coefficient estimates for the other variables.
 """)
@@ -277,12 +329,26 @@ for var in vars_p:
 
     plt.close()
 
+# Correlation matrix
+corr_matrix_C = dfC[['GDP', 'PGDP', 'TC', 'HHTC', 'NFCTC', 'IR']].corr()
+print("\n", corr_matrix_C)
+
+# Export correlation matrix to Excel
+corr_matrix_C.to_excel("correlation_matrix_C.xlsx", sheet_name = "corr_matrix_C")
+files.download("correlation_matrix_C.xlsx")
+
+# plt.figure(figsize = (7, 7))
+sns.heatmap(corr_matrix_C, annot = True, cmap = 'coolwarm')
+plt.title("Correlation Matrix")
+plt.savefig('correlation_matrix_C.png')
+plt.show()
+
 # The annual growth rate of a variable 'X' is calculated as: (Xt / Xt-4 - 1) * 100
 
 # Annual growth rate of (real) GDP
 dfC['GDP_annual_growth'] = (dfC['GDP'] / dfC['GDP'].shift(4) - 1) * 100
 
-# Real total credit (RTC) is derived by dividing TC by PGDP
+# Real total credit (RTC) is derived dividing TC by PGDP
 dfC['RTC'] = dfC['TC'] / dfC['PGDP']
 
 # Annual growth rate of real total credit to non-financial private sector (RTC)
@@ -301,18 +367,18 @@ plt.tight_layout()
 plt.show()
 
 print("""
-The chart shows that real total credit (RTC) appears to be procyclical, meaning it generally moves in tandem with the business cycle, as represented by real GDP growth.
+The chart shows that real total credit (RTC) appears to be procyclical, meaning it generally moves in line with the business cycle, as represented by real GDP growth.
 
 The annual growth rate of RTC rises during periods of economic expansion (high GDP growth) and falls during economic contractions (low or negative GDP growth).
 For example, during recessions, such as the early 1980s, early 1990s, and the Great Recession of 2008-2009, both GDP growth and RTC growth experienced sharp declines.
 Conversely, during periods of strong economic performance, the growth rates of both variables tend to increase.
 """)
 
-# First Difference of total credit to non-financial private sector (TC)
-dfC['TC_FD'] = dfC['TC'].diff()
-
 # Annual growth rate of total credit to non-financial private sector (TC)
 dfC['TC_annual_growth'] = (dfC['TC'] / dfC['TC'].shift(4) - 1) * 100
+
+# First Difference of total credit to non-financial private sector (TC)
+dfC['TC_FD'] = dfC['TC'].diff()
 
 # Annual change in the interest rate (independent variable)
 dfC['IR_change'] = dfC['IR'] - dfC['IR'].shift(4)
@@ -322,7 +388,7 @@ dfC = dfC.dropna()
 
 # Select only numeric columns (avoids errors with non-numeric data like 'Date')
 num_cols = dfC.select_dtypes(include = 'number').columns
-num_cols = num_cols.drop(['Year', 'Quarter'], errors='ignore')
+num_cols = num_cols.drop(['Year', 'Quarter'], errors = 'ignore')
 
 # Mean and standard deviation
 des = dfC[num_cols].describe().T[['mean', 'std']]
@@ -390,11 +456,17 @@ plt.show()
 # Regression: RTC_annual_growth = β0 + β1 * GDP_annual_growth + β2 * IR_change + ε
 formula_RTC_growth_IRc = 'RTC_annual_growth ~ GDP_annual_growth + IR_change'
 model_RTC_growth_IRc = smf.ols(formula_RTC_growth_IRc, data = dfC).fit()
+model_RTC_growth_IRc_W = smf.ols(formula_RTC_growth_IRc, data = dfC).fit(cov_type = 'HC1') # Heteroskedasticity-robust standard errors (White SE)
 
 print(model_RTC_growth_IRc.summary())
 
+print("\n", model_RTC_growth_IRc_W.summary(), "\n")
+
 # Export regression summary to html (open with Excel)
 export_summary(model_RTC_growth_IRc, "regression_summary_RTC_growth_IRc.html")
+
+# Export regression summary to html (open with Excel)
+export_summary(model_RTC_growth_IRc_W, "regression_summary_RTC_growth_IRc_W.html")
 
 print("""
 The regression results indicate that changes in the interest rate and GDP growth are significant factors in explaining the growth dynamics of real total credit.
@@ -424,6 +496,20 @@ print("p-value:", result_GDP[1])
 print("Critical values:", result_GDP[4])
 print("The Augmented Dickey-Fuller (ADF) test for the annual real GDP growth rate series provides evidence of stationarity, as the null hypothesis of a unit root is rejected at the 5% significance level.")
 
+result_TC_gr = adfuller(dfC['TC_annual_growth'])
+print("\nAnnual TC growth")
+print("ADF statistic:", result_TC_gr[0])
+print("p-value:", result_TC_gr[1])
+print("Critical values:", result_TC_gr[4])
+print("The Augmented Dickey-Fuller (ADF) test for the total credit to non-financial private sector annual growth rate series provides evidence of stationarity, as the null hypothesis of a unit root is rejected at the 5% significance level.")
+
+result_TC_diff = adfuller(dfC['TC_FD'])
+print("\nAnnual TC First Difference")
+print("ADF statistic:", result_TC_diff[0])
+print("p-value:", result_TC_diff[1])
+print("Critical values:", result_TC_diff[4])
+print("The Augmented Dickey-Fuller (ADF) test for the total credit to non-financial private sector First Difference series provides evidence of stationarity, as the null hypothesis of a unit root is rejected at the 5% significance level.")
+
 result_IRc = adfuller(dfC['IR_change'])
 print("\nAnnual interest rate change")
 print("ADF statistic:", result_IRc[0])
@@ -436,96 +522,241 @@ print("\nThe chosen transformations for the independent variables address the po
 # Seasonality check
 print("\nSeasonality check")
 
-decomposition_RTC = seasonal_decompose(dfC['RTC_annual_growth'].dropna(), model = 'additive', period = 4)  # quarterly data
+# RTC annual growth rate time series decomposition
+decomposition_RTC_gr = seasonal_decompose(dfC['RTC_annual_growth'], model = 'additive', period = 4)  # quarterly data
 print("\nRTC growth seasonal component")
-print(decomposition_RTC.seasonal)
+print(decomposition_RTC_gr.seasonal)
+# Plot
+fig = decomposition_RTC_gr.plot()
+fig.set_size_inches(14, 7)
+fig.suptitle("Seasonal Decomposition")
+plt.tight_layout()
+plt.savefig('seasonal_decomposition_RTC.png')
+plt.show()
 
-decomposition_GDP = seasonal_decompose(dfC['GDP_annual_growth'].dropna(), model = 'additive', period = 4)  # quarterly data
+# GDP annual growth rate time series decomposition
+decomposition_GDP_gr = seasonal_decompose(dfC['GDP_annual_growth'], model = 'additive', period = 4)  # quarterly data
 print("\nGDP growth seasonal component")
-print(decomposition_GDP.seasonal)
+print(decomposition_GDP_gr.seasonal)
+# Plot
+fig = decomposition_GDP_gr.plot()
+fig.set_size_inches(14, 7)
+fig.suptitle("Seasonal Decomposition")
+plt.tight_layout()
+plt.savefig('seasonal_decomposition_GDP_gr.png')
+plt.show()
 
-decomposition_IRc = seasonal_decompose(dfC['IR_change'].dropna(), model = 'additive', period = 4)  # quarterly data
+# TC annual growth rate time series decomposition
+decomposition_TC_gr = seasonal_decompose(dfC['TC_annual_growth'], model = 'additive', period = 4)  # quarterly data
+print("\nTC growth seasonal component")
+print(decomposition_TC_gr.seasonal)
+# Plot
+fig = decomposition_TC_gr.plot()
+fig.set_size_inches(14, 7)
+fig.suptitle("Seasonal Decomposition")
+plt.tight_layout()
+plt.savefig('seasonal_decomposition_TC_gr.png')
+plt.show()
+
+# TC First Difference time series decomposition
+decomposition_TC_diff = seasonal_decompose(dfC['TC_FD'], model = 'additive', period = 4)  # quarterly data
+print("\nTC First Difference seasonal component")
+print(decomposition_TC_diff.seasonal)
+# Plot
+fig = decomposition_TC_diff.plot()
+fig.set_size_inches(14, 7)
+fig.suptitle("Seasonal Decomposition")
+plt.tight_layout()
+plt.savefig('seasonal_decomposition_TC_FD.png')
+plt.show()
+
+# Annual change in the interest rate time series decomposition
+decomposition_IRc = seasonal_decompose(dfC['IR_change'], model = 'additive', period = 4)  # quarterly data
 print("\nIR change seasonal component")
-print(decomposition_IRc.seasonal)
+print(decomposition_IRc.seasonal, "\n")
+# Plot
+fig = decomposition_IRc.plot()
+fig.set_size_inches(14, 7)
+fig.suptitle("Seasonal Decomposition")
+plt.tight_layout()
+plt.savefig('seasonal_decomposition_IR_change.png')
+plt.show()
+
+print("\n")
 
 # Annual growth rate of total credit to non-financial private sector (TC) - more economically meaningful for credit data
 tc_growth = dfC['TC_annual_growth']
-y1 = tc_growth
 
-results1 = {}
+plt.figure(figsize = (14, 7))
+plot_acf(tc_growth, lags = 20, alpha = 0.05)
+plt.title("ACF - TC Annual Growth")
+plt.tight_layout()
+plt.savefig('ACF_TC_annual_growth.png')
+plt.show()
 
-# MA model - TC annual growth rate
-ma_model1 = ARIMA(y1, order=(0, 0, 1)).fit()
-results1['MA(1)'] = ma_model1
+print("""
+The ACF plot shows significant spikes up to lag 9, considering a 95% confidence level.
+Remark: ACF plot suggests candidate MA(q) model with q = 9
+""")
 
-print("\nMA(1) for TC annual growth rate estimated.\n")
+plt.figure(figsize = (14, 7))
+plot_pacf(tc_growth, lags = 20, alpha = 0.05)
+plt.title("PACF - TC Annual Growth")
+plt.tight_layout()
+plt.savefig('PACF_TC_annual_growth.png')
+plt.show()
 
-# AR model - TC annual growth rate
-ar_model1 = ARIMA(y1, order=(1, 0, 0)).fit()
-results1['AR(1)'] = ar_model1
+print("""
+The PACF plot shows significant spikes up to lag 7, considering a 95% confidence level.
+Remark: PACF plot suggest candidate AR(p) model with p = 7
+""")
+
+print("""
+The ACF plot suggests that shocks to credit — such as monetary policy changes, financial disturbances, or demand shocks — affect credit growth over multiple subsequent periods, reflecting delayed transmission and smoothing behavior in the lending sector.
+The PACF plot indicates strong persistence in credit growth, consistent with slow-moving financial cycles and gradual adjustments in lending.
+Overall, credit growth exhibits both strong inertia and prolonged shock propagation, indicating a highly path-dependent financial system.
+""")
+
+results_gr = {}
+
+# # MA(9) model - TC annual growth rate
+# ma_model_gr = ARIMA(tc_growth, order = (0, 0, 9)).fit()
+# results_gr['MA(9)'] = ma_model_gr
+
+# print("\nMA(9) for TC annual growth rate estimated.\n")
+
+# # AR(7) model - TC annual growth rate
+# ar_model_gr = ARIMA(tc_growth, order = (7, 0, 0)).fit()
+# results_gr['AR(7)'] = ar_model_gr
+
+# print("AR(7) for TC annual growth rate estimated.\n")
+
+# # ARMA(7,9) model - TC annual growth rate
+# arma_model_gr = ARIMA(tc_growth, order = (7, 0, 9)).fit()
+# results_gr['ARMA(7,9)'] = arma_model_gr
+
+# print("ARMA(7,9) for TC annual growth rate estimated.\n")
+
+# MA(1) model - TC annual growth rate
+ma_model_gr_1 = ARIMA(tc_growth, order = (0, 0, 1)).fit()
+results_gr['MA(1)'] = ma_model_gr_1
+
+print("MA(1) for TC annual growth rate estimated.\n")
+
+# AR(1) model - TC annual growth rate
+ar_model_gr_1 = ARIMA(tc_growth, order = (1, 0, 0)).fit()
+results_gr['AR(1)'] = ar_model_gr_1
 
 print("AR(1) for TC annual growth rate estimated.\n")
 
-# ARIMA - TC annual growth rate
-arima_model1 = ARIMA(y1, order=(1, 0, 1)).fit()
-results1['ARIMA(1,0,1)'] = arima_model1
+# ARMA(1,1) - TC annual growth rate
+arima_model_gr_1 = ARIMA(tc_growth, order = (1, 0, 1)).fit()
+results_gr['ARMA(1,1)'] = arima_model_gr_1
 
-print("ARIMA(1,0,1) for TC annual growth rate estimated.\n")
+print("ARMA(1,1) for TC annual growth rate estimated.\n")
 
 # Model comparison
-comparison = pd.DataFrame({
-    "Model": results1.keys(),
-    "AIC": [results1[m].aic for m in results1],
-    "BIC": [results1[m].bic for m in results1]
+comparison_gr = pd.DataFrame({
+    "Model": results_gr.keys(),
+    "AIC": [results_gr[m].aic for m in results_gr],
+    "BIC": [results_gr[m].bic for m in results_gr]
 })
 
-print(comparison.sort_values(by = "AIC"))
-best_model_aic = comparison.sort_values(by = "AIC").iloc[0]
-print("\nBest model by AIC:", best_model_aic["Model"])
+print(comparison_gr.sort_values(by = "AIC"))
+best_model_aic_gr = comparison_gr.sort_values(by = "AIC").iloc[0]
+print("\nBest model by AIC:", best_model_aic_gr["Model"])
 
-print(results1[best_model_aic["Model"]].summary())
+print(results_gr[best_model_aic_gr["Model"]].summary())
 
 # Export regression summary to html (open with Excel)
-export_summary(results1[best_model_aic["Model"]], "regression_summary_TC_growth_AIC.html")
+export_summary(results_gr[best_model_aic_gr["Model"]], "regression_summary_TC_growth_AIC.html")
 
 # First Difference of total credit to non-financial private sector (TC)
 tc_diff = dfC['TC_FD']
-y2 = tc_diff
 
-results2 = {}
+plt.figure(figsize = (14, 7))
+plot_acf(tc_diff, lags = 20, alpha = 0.05)
+plt.title("ACF - TC First Difference")
+plt.tight_layout()
+plt.savefig('ACF_TC_FD.png')
+plt.show()
 
-# MA model - TC First Difference
-ma_model2 = ARIMA(y2, order=(0, 0, 1)).fit()
-results2['MA(1)'] = ma_model2
+print("""
+The ACF plot shows significant spikes up to lag 9, considering a 95% confidence level.
+Remark: ACF plot suggest candidate MA(q) model with q = 9.
+""")
 
-print("\nMA(1) for TC First Difference estimated.\n")
+plt.figure(figsize = (14, 7))
+plot_pacf(tc_diff, lags = 20, alpha = 0.05)
+plt.title("PACF - TC First Difference")
+plt.tight_layout()
+plt.savefig('PACF_TC_FD.png')
+plt.show()
 
-# AR model - TC First Difference
-ar_model2 = ARIMA(y2, order=(1, 0, 0)).fit()
-results2['AR(1)'] = ar_model2
+print("""
+The PACF plot shows significant spikes up to lag 3, considering a 95% confidence level.
+Remark: PACF plot suggest candidate AR(p) model with p = 9.
+""")
+
+print("""
+The ACF plot suggests that shocks to credit growth — such as monetary policy changes, financial sector disturbances, or shifts in credit demand — affect credit growth over multiple subsequent periods. This reflects delayed transmission of shocks through the lending system, as lending conditions, funding costs, and borrower demand adjust gradually rather than instantaneously.
+The PACF plot indicates strong persistence in total credit growth, consistent with slow-moving financial cycles and gradual adjustment processes in lending behavior. This suggests that past credit growth continues to influence current credit dynamics due to inertia in lending decisions, relationship lending, and slow balance sheet adjustments by financial institutions.
+Overall, total credit growth exhibits both strong internal inertia and prolonged propagation of external shocks, indicating a highly path-dependent financial system in which both past dynamics and historical disturbances play a persistent role in shaping current credit developments.
+""")
+
+results_diff = {}
+
+# # MA(9) model - TC First Difference
+# ma_model_diff = ARIMA(tc_diff, order = (0, 0, 9)).fit()
+# results_diff['MA(9)'] = ma_model_diff
+
+# print("\nMA(9) for TC First Difference estimated.\n")
+
+# # AR(3) model - TC First Difference
+# ar_model_diff = ARIMA(tc_diff, order = (3, 0, 0)).fit()
+# results_diff['AR(3)'] = ar_model_diff
+
+# print("AR(3) for TC First Difference estimated.\n")
+
+# # ARMA(3,9) model - TC First Difference
+# arma_model_diff = ARIMA(tc_diff, order = (3, 0, 9)).fit()
+# results_diff['ARMA(3,9)'] = arma_model_diff
+
+# print("ARMA(3,9) for TC First Difference estimated.\n")
+
+# MA(1) model - TC First Difference
+ma_model_diff_1 = ARIMA(tc_diff, order = (0, 0, 1)).fit()
+results_diff['MA(1)'] = ma_model_diff_1
+
+print("MA(1) for TC First Difference estimated.\n")
+
+# AR(1) model - TC First Difference
+ar_model_diff_1 = ARIMA(tc_diff, order = (1, 0, 0)).fit()
+results_diff['AR(1)'] = ar_model_diff_1
 
 print("AR(1) for TC First Difference estimated.\n")
 
-# ARIMA model - TC First Difference
-arima_model2 = ARIMA(y2, order=(1, 0, 1)).fit()
-results2['ARIMA(1,0,1)'] = arima_model2
+# ARMA(1,1) - TC First Difference
+arma_model_diff_1 = ARIMA(tc_diff, order = (1, 0, 1)).fit()
+results_diff['ARMA(1,1)'] = arma_model_diff_1
 
-print("ARIMA(1,0,1) for TC First Difference estimated.\n")
+print("ARMA(1,1) for TC First Difference estimated.\n")
 
-comparison = pd.DataFrame({
-    "Model": list(results2.keys()),
-    "AIC": [results2[m].aic for m in results2],
-    "BIC": [results2[m].bic for m in results2]
+# Model comparison
+comparison_diff = pd.DataFrame({
+    "Model": results_diff.keys(),
+    "AIC": [results_diff[m].aic for m in results_diff],
+    "BIC": [results_diff[m].bic for m in results_diff]
 })
 
-print(comparison.sort_values(by = "AIC"))
-best_model_aic = comparison.sort_values(by = "AIC").iloc[0]
-print("\nBest model by AIC:", best_model_aic["Model"])
+print(comparison_diff.sort_values(by = "AIC"))
+best_model_aic_diff = comparison_diff.sort_values(by = "AIC").iloc[0]
+print("\nBest model by AIC:", best_model_aic_diff["Model"], "\n")
 
-print(results2[best_model_aic["Model"]].summary(), "\n")
+print(results_diff[best_model_aic_diff["Model"]].summary())
 
 # Export regression summary to html (open with Excel)
-export_summary(results2[best_model_aic["Model"]], "regression_summary_TC_FD_AIC.html")
+export_summary(results_diff[best_model_aic_diff["Model"]], "regression_summary_TC_FD_AIC.html")
 
 ################################################################################
 
@@ -564,7 +795,7 @@ print("Correlation:", corr_unemp)
 print("p-value:", p_unemp)
 
 print("""
-This indicates a moderate and statistically significant at the 5% level negative relationship between ROE and unemployment.
+This indicates a moderate, statistically significant at the 5% level negative relationship between ROE and unemployment.
 When unemployment rises, ROE tends to fall.
 Higher unemployment reflects weaker aggregate demand, which compresses firm revenues and margins.
 Lower demand reduces pricing power and efficiency, leading to weaker profitability.
@@ -590,13 +821,13 @@ print("Correlation:", corr_gdp)
 print("p-value:", p_gdp)
 
 print("""
-This shows a weak and statistically significant at the 10% level positive relationship between ROE and GDP growth.
+This shows a weak, statistically significant at the 10% level positive relationship between ROE and GDP growth.
 The sign of the correlation coefficient is consistent with theory, since ROE should increase with GDP growth.
 There are several reasons for the weakness of this relationship:
 - GDP growth is noisy and volatile, especially at quarterly frequency, which weakens correlations.
 - Timing mismatch: GDP growth reflects current or leading conditions, while ROE often reacts with a lag.
 - Growth vs. level: profitability depends more on the level of economic slack than growth rates.
-- Financial factors like leverage, interest rates, taxes, and buybacks affect ROE independently.
+- Financial factors like leverage and interest rates affect ROE independently.
 
 Unemployment appears to be a better proxy for the macro environment affecting profitability (ROE) because:
 - it is smoother and less noisy than GDP growth;
@@ -604,47 +835,116 @@ Unemployment appears to be a better proxy for the macro environment affecting pr
 - it better reflects the cyclical position of the economy.
 """)
 
+# Correlation matrix
+corr_matrix_D = df_reset[['ROE', 'UnemplRate', 'GDPgrowth']].corr()
+print("\n", corr_matrix_D, "\n")
+
+# Export correlation matrix to Excel
+corr_matrix_D.to_excel("correlation_matrix_D.xlsx", sheet_name = "corr_matrix_D")
+files.download("correlation_matrix_D.xlsx")
+
+# plt.figure(figsize = (7, 7))
+sns.heatmap(corr_matrix_D, annot = True, cmap = 'coolwarm')
+plt.title("Correlation Matrix")
+plt.savefig('correlation_matrix_D.png')
+plt.show()
+
 # To improve the analysis, consider using lagged GDP growth, output gap measures, or unemployment gaps, which are more closely aligned with firm profitability.
 
 # Panel regression with Fixed Effects estimator
 y = dfD['NPLRatio']
 X = dfD[['GDPgrowth', 'UnemplRate']]
 
-# Add constant
 X = sm.add_constant(X)
 
 # Fixed Effects
-model_NPL = PanelOLS(y, X, entity_effects = True, time_effects = True)
-results_NPL = model_NPL.fit(cov_type = 'clustered', cluster_entity = True)
+model_NPL_FE = PanelOLS(y, X, entity_effects = True, time_effects = True)
+results_NPL_FE = model_NPL_FE.fit()
+# results_NPL_FE = model_NPL_FE.fit(cov_type = 'clustered', cluster_entity = True)
 
-print(results_NPL.summary, "\n")
+print(results_NPL_FE.summary, "\n")
 
 # Export regression summary to html (open with Excel)
-export_summary(results_NPL, "regression_summary_NPL_panel.html")
+export_summary(results_NPL_FE, "regression_summary_NPL_FE.html")
+
+# Random Effects
+model_NPL_RE = RandomEffects(y, X)
+results_NPL_RE = model_NPL_RE.fit()
+
+print(results_NPL_RE.summary)
+
+# Export regression summary to html (open with Excel)
+export_summary(results_NPL_RE, "regression_summary_NPL_RE.html")
+
+# Hausman test
+def hausman(fe, re):
+    b_fe = fe.params
+    b_re = re.params
+
+    common = b_fe.index.intersection(b_re.index)
+
+    b_fe = b_fe[common]
+    b_re = b_re[common]
+
+    v_fe = fe.cov.loc[common, common]
+    v_re = re.cov.loc[common, common]
+
+    diff = b_fe - b_re
+    v_diff = v_fe - v_re
+
+    stat = diff.T @ np.linalg.inv(v_diff) @ diff
+    df = len(diff)
+
+    p_value = 1 - stats.chi2.cdf(stat, df)
+
+    return stat, df, p_value
+
+stat, df, pval = hausman(results_NPL_FE, results_NPL_RE)
+
+print("\nHausman statistic:", stat)
+print("df:", df)
+print("p-value:", pval)
+
+print("p-value > 0.05 --> use Random Effects model")
 
 def run_reg(data):
     y = data['NPLRatio']
     X = sm.add_constant(data[['GDPgrowth', 'UnemplRate']])
     model = sm.OLS(y, X).fit()
-    return model
+    model_W = sm.OLS(y, X).fit(cov_type = 'HC1') # Heteroskedasticity-robust standard errors (White SE)
+    return model, model_W
 
 # Germany
 df_DE = dfD.loc[6]
-res_DE = run_reg(df_DE)
+results_NPL_FE_DE = run_reg(df_DE)[0]
 
-print("Germany\n", res_DE.summary())
+print("\nGermany\n", results_NPL_FE_DE.summary())
+
+results_NPL_FE_DE_W = run_reg(df_DE)[1]
+
+print("\n", results_NPL_FE_DE_W.summary(), "\n")
 
 # Export regression summary to html (open with Excel)
-export_summary(res_DE, "regression_summary_NPL_DE.html")
+export_summary(results_NPL_FE_DE, "regression_summary_NPL_DE.html")
+
+# Export regression summary to html (open with Excel)
+export_summary(results_NPL_FE_DE_W, "regression_summary_NPL_DE_W.html")
 
 # Denmark
 df_DK = dfD.loc[7]
-res_DK = run_reg(df_DK)
+results_NPL_FE_DK = run_reg(df_DK)[0]
 
-print("\nDenmark\n", res_DK.summary())
+print("Denmark\n", results_NPL_FE_DK.summary())
+
+results_NPL_FE_DK_W = run_reg(df_DK)[1]
+
+print("\n", results_NPL_FE_DK_W.summary())
 
 # Export regression summary to html (open with Excel)
-export_summary(res_DK, "regression_summary_NPL_DK.html")
+export_summary(results_NPL_FE_DK, "regression_summary_NPL_DK.html")
+
+# Export regression summary to html (open with Excel)
+export_summary(results_NPL_FE_DK_W, "regression_summary_NPL_DK_W.html")
 
 print("""
 Germany has a larger absolute GDP growth coefficient (-0.3851), significant at the 10% level (p-value = 0.078) compared to the one for Denmark (-0.0997), which is not statistically significant (p-value = 0.544).
@@ -661,33 +961,69 @@ df_lag = dfD.dropna()
 y = df_lag['NPLRatio']
 X = df_lag[['GDPgrowth', 'UnemplRate', 'NPL_lag']]
 
-# Add constant
 X = sm.add_constant(X)
 
 # Fixed Effects
-model_lag = PanelOLS(y, X, entity_effects = True, time_effects = True)
-results_lag = model_lag.fit(cov_type = 'clustered', cluster_entity = True)
+model_NPL_lag_FE = PanelOLS(y, X, entity_effects = True, time_effects = True)
+results_NPL_lag_FE = model_NPL_lag_FE.fit()
+# results_NPL_lag_FE = model_NPL_lag_FE.fit(cov_type = 'clustered', cluster_entity = True)
 
-print(results_lag.summary, "\n")
+print(results_NPL_lag_FE.summary, "\n")
 
 # Export regression summary to html (open with Excel)
-export_summary(results_lag, "regression_summary_NPL_lag_panel.html")
+export_summary(results_NPL_lag_FE, "regression_summary_NPL_lag_FE.html")
+
+# Random Effects
+model_NPL_lag_RE = RandomEffects(y, X)
+results_NPL_lag_RE = model_NPL_lag_RE.fit()
+
+print(results_NPL_lag_RE.summary)
+
+# Export regression summary to html (open with Excel)
+export_summary(results_NPL_lag_RE, "regression_summary_NPL_lag_RE.html")
+
+# Hausman test
+stat, df, pval = hausman(results_NPL_lag_FE, results_NPL_lag_RE)
+
+print("\nHausman statistic:", stat)
+print("df:", df)
+print("p-value:", pval)
+
+print("p-value <= 0.05 --> use Fixed Effects model\n")
 
 # Panel regression with Fixed Effects estimator
 y = dfD['ROE']
 X = dfD[['GDPgrowth', 'UnemplRate']]
 
-# Add constant
 X = sm.add_constant(X)
 
 # Fixed Effects
-mod = PanelOLS(y, X, entity_effects = True, time_effects = True)
-res = mod.fit(cov_type = 'clustered', cluster_entity = True)
+model_ROE_FE = PanelOLS(y, X, entity_effects = True, time_effects = True)
+results_ROE_FE = model_ROE_FE.fit()
+# results_ROE_FE = model_ROE_FE.fit(cov_type = 'clustered', cluster_entity = True)
 
-print(res.summary)
+print(results_ROE_FE.summary)
 
 # Export regression summary to html (open with Excel)
-export_summary(res, "regression_summary_ROE_unempl_panel.html")
+export_summary(results_ROE_FE, "regression_summary_ROE_FE.html")
+
+# Random Effects
+model_ROE_RE = RandomEffects(y, X)
+results_ROE_RE = model_ROE_RE.fit()
+
+print(results_ROE_RE.summary)
+
+# Export regression summary to html (open with Excel)
+export_summary(results_ROE_RE, "regression_summary_ROE_RE.html")
+
+# Hausman test
+stat, df, pval = hausman(results_ROE_FE, results_ROE_RE)
+
+print("\nHausman statistic:", stat)
+print("df:", df)
+print("p-value:", pval)
+
+print("p-value > 0.05 --> use Random Effects model\n")
 
 dfD['GDP_lag'] = dfD.groupby(level = 0)['GDPgrowth'].shift(1)
 dfD['Unemp_lag'] = dfD.groupby(level = 0)['UnemplRate'].shift(1)
@@ -698,16 +1034,35 @@ df_lag2 = dfD.dropna()
 y = df_lag2['ROE']
 X = df_lag2[['GDPgrowth', 'UnemplRate', 'GDP_lag', 'Unemp_lag']]
 
-# Add constant
 X = sm.add_constant(X)
 
-mod2 = PanelOLS(y, X, entity_effects = True, time_effects = True)
-res2 = mod2.fit(cov_type = 'clustered', cluster_entity = True)
+# Fixed Effects
+model_ROE2_FE = PanelOLS(y, X, entity_effects = True, time_effects = True)
+results_ROE2_FE = model_ROE2_FE.fit()
+# results_ROE2_FE = model_ROE2_FE.fit(cov_type = 'clustered', cluster_entity = True)
 
-print(res2.summary)
+print(results_ROE2_FE.summary)
 
 # Export regression summary to html (open with Excel)
-export_summary(res2, "regression_summary_ROE_unempl_lag_panel.html")
+export_summary(results_ROE2_FE, "regression_summary_ROE2_FE.html")
+
+# Random Effects
+model_ROE2_RE = RandomEffects(y, X)
+results_ROE2_RE = model_ROE2_RE.fit()
+
+print(results_ROE2_RE.summary)
+
+# Export regression summary to html (open with Excel)
+export_summary(results_ROE2_RE, "regression_summary_ROE2_RE.html")
+
+# Hausman test
+stat, df, pval = hausman(results_ROE2_FE, results_ROE2_RE)
+
+print("\nHausman statistic:", stat)
+print("df:", df)
+print("p-value:", pval)
+
+print("p-value > 0.05 --> use Random Effects model\n")
 
 dfD['ROE_lag'] = dfD.groupby(level = 0)['ROE'].shift(1)
 df_lag3 = dfD.dropna()
@@ -716,16 +1071,35 @@ df_lag3 = dfD.dropna()
 y = df_lag3['ROE']
 X = df_lag3[['GDPgrowth', 'UnemplRate', 'ROE_lag']]
 
-# Add constant
 X = sm.add_constant(X)
 
-mod3 = PanelOLS(y, X, entity_effects = True, time_effects = True)
-res3 = mod3.fit(cov_type = 'clustered', cluster_entity = True)
+# Fixed Effects
+model_ROE_lag_FE = PanelOLS(y, X, entity_effects = True, time_effects = True)
+results_ROE_lag_FE = model_ROE_lag_FE.fit()
+# results_ROE_lag_FE = model_ROE_lag_FE.fit(cov_type = 'clustered', cluster_entity = True)
 
-print(res3.summary)
+print(results_ROE_lag_FE.summary)
 
 # Export regression summary to html (open with Excel)
-export_summary(res3, "regression_summary_ROE_lag_panel.html")
+export_summary(results_ROE_lag_FE, "regression_summary_ROE_lag_FE.html")
+
+# Random Effects
+model_ROE_lag_RE = RandomEffects(y, X)
+results_ROE_lag_RE = model_ROE_lag_RE.fit()
+
+print(results_ROE_lag_RE.summary)
+
+# Export regression summary to html (open with Excel)
+export_summary(results_ROE_lag_RE, "regression_summary_ROE_lag_RE.html")
+
+# Hausman test
+stat, df, pval = hausman(results_ROE_lag_FE, results_ROE_lag_RE)
+
+print("\nHausman statistic:", stat)
+print("df:", df)
+print("p-value:", pval)
+
+print("p-value <= 0.05 --> use Fixed Effects model")
 
 ################################################################################
 
@@ -735,9 +1109,9 @@ df_creditor = pd.read_excel("data.xlsx", sheet_name = "data_creditor")
 # Exposure data
 df_exposure = pd.read_excel("data.xlsx", sheet_name = "data_exposure")
 
-merged_df = pd.merge(df_creditor, df_exposure, on = ["DT_RFRNC", "CRDTR_ID"], how = "left")
+merged_df_CE = pd.merge(df_creditor, df_exposure, on = ["DT_RFRNC", "CRDTR_ID"], how = "left")
 
-merged_table = merged_df[["DT_RFRNC", "CRDTR_NM", "CRDTR_CNTRY", "TOT_ASS", "TYP_INSTRMNT", "EXP_VALUE", "DBTR_NM", "DBTR_CNTRY"]].copy()
+merged_table = merged_df_CE[["DT_RFRNC", "CRDTR_NM", "CRDTR_CNTRY", "TOT_ASS", "TYP_INSTRMNT", "EXP_VALUE", "DBTR_NM", "DBTR_CNTRY"]].copy()
 
 merged_table["DT_RFRNC"] = pd.to_datetime(merged_table["DT_RFRNC"].astype(str), format = "%Y%m")
 merged_table['Year'] = merged_table['DT_RFRNC'].dt.year
@@ -771,13 +1145,13 @@ CREI = merged_table[
 ][["CRDTR_NM", "TYP_INSTRMNT", "EXP_VALUE"]].sort_values(by = "CRDTR_NM")
 
 print("\nCredit instruments with an exposure value >= 1 EUR million in June 2020 granted by Lenders resident in Germany")
-print(CREI)
+print(CREI, "\n")
 
 # Aggregate exposure value grouped by country of residence of creditor for all reference dates
 agg = (merged_table.groupby(["DT_RFRNC", "CRDTR_CNTRY"])["EXP_VALUE"].sum().reset_index())
 pivot = agg.pivot(index = "DT_RFRNC", columns = "CRDTR_CNTRY", values = "EXP_VALUE")
 
-# Chart to visualise the change in aggregate exposures by country of residence of creditor over time
+# Chart to visualise the change in aggregate exposures by creditor country over time
 pivot.plot(figsize = (14, 7))
 
 plt.title("Aggregate exposure by creditor country over time")
