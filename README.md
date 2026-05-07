@@ -98,7 +98,7 @@ New variables are created, including:
 * **debt-to-GDP ratio**
 * **loans-to-assets ratio**
 * **operating expense ratio**
-* **real Total Credit (RTC)**
+* **Real Total Credit (RTC)**
 * **annual growth rates (GDP, credit)**
 * **credit composition shares (households vs firms)**  
 * **exposure indicators (domestic, large exposure flags)**
