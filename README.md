@@ -6,16 +6,16 @@ This project performs a comprehensive empirical analysis of fictitious financial
 
 The analysis includes:
 
-* Data merging and cleaning
-* Construction of financial and macroeconomic variables
-* Descriptive statistics
-* Data visualization
-* Cross-sectional and panel regressions (OLS and Fixed Effects)
-* Hausman tests for Fixed vs Random Effects model selection
-* Time-series analysis (growth rates, ARIMA models, stationarity tests)
-* Model selection using information criteria (AIC and BIC)
-* Credit exposure aggregation and lending risk analysis
-* Economic interpretation of results
+* data merging and cleaning;
+* construction of financial and macroeconomic variables;
+* descriptive statistics;
+* data visualisation;
+* cross-sectional and panel regressions (OLS and Fixed Effects);
+* Hausman tests for Fixed vs Random Effects model selection;
+* time-series analysis (growth rates, ARIMA models, stationarity test, seasonal decomposition);
+* model selection using AIC information criterion;
+* credit exposure aggregation and lending risk analysis;
+* economic interpretation of results.
 
 The project is designed for use in a [**Google Colab**](https://colab.research.google.com/) environment.
 
@@ -24,10 +24,10 @@ The project is designed for use in a [**Google Colab**](https://colab.research.g
 ## Objective
 
 To examine how firm characteristics and macroeconomic conditions influence:
-- **loan pricing**   
-- **lender profitability**  
-- **credit growth**
-- **credit risk (NPLs)**
+* **loan pricing**   
+* **lender profitability**  
+* **credit growth**
+* **credit risk (NPLs)**
 
 ---
 
@@ -62,9 +62,10 @@ The following Python libraries are required:
 pandas
 numpy
 matplotlib
+seaborn
 statsmodels
-scipy
 linearmodels
+scipy
 openpyxl (for Excel file operations)
 google.colab (for Colab file handling)
 ```
@@ -73,17 +74,17 @@ google.colab (for Colab file handling)
 
 ## Workflow
 
-### 1. Data Loading & Upload (Google Colab)
+### 1. Data Loading & Upload
 
-* Checks whether `data.xlsx` exists
-* If not, prompts the user to upload it
-* Loads multiple sheets into pandas DataFrames
+* Checks whether `data.xlsx` exists.
+* If not, prompts the user to upload it.
+* Loads multiple sheets into pandas DataFrames.
 
 ### 2. Data Merging & Cleaning
 
-* Merges loan and financial statement data using `c_id`
-* Checks uniqueness of financial statement keys
-* Left join ensures all loan observations are retained
+* Merges loan and financial statement data using `c_id`.
+* Checks uniqueness of financial statement keys.
+* Left join ensures all loan observations are retained.
 
 ```python
 merged_df = pd.merge(df_loan, df_financial, on = 'c_id', how = 'left')
@@ -93,14 +94,14 @@ merged_df = pd.merge(df_loan, df_financial, on = 'c_id', how = 'left')
 
 New variables are created, including:
 
-* **Interest expense**
-* **Debt-to-GDP ratio**
-* **Loans-to-assets ratio**
-* **Operating expense ratio**
-* **Real Total Credit (RTC)**
-* **Annual growth rates (GDP, credit)**
-* **Credit composition shares (households vs firms)**  
-* **Exposure indicators (domestic, large exposure flags)**
+* **interest expense**
+* **debt-to-GDP ratio**
+* **loans-to-assets ratio**
+* **operating expense ratio**
+* **real Total Credit (RTC)**
+* **annual growth rates (GDP, credit)**
+* **credit composition shares (households vs firms)**  
+* **exposure indicators (domestic, large exposure flags)**
 
 ### 4. Descriptive Statistics
 
@@ -123,9 +124,9 @@ Output:
 * printed in markdown format
 * exported to Excel (`descriptive_statistics.xlsx`)
 
-## 5. Regression Analysis
+### 5. Regression Analysis
 
-### Interest Rate Determinants
+#### Interest Rate Determinants
 
 ```text
 interest_rate ~ ROA + total_assets + public
@@ -136,7 +137,7 @@ Findings:
 * firm size → negative and significant effect  
 * public listing → not significant  
 
-### Lender Profitability
+#### Lender Profitability
 
 ```text
 ROE ~ loans_to_total_assets + exp_operating_to_total_assets + cet1_ratio + gdp + interest_rate
@@ -148,7 +149,7 @@ Findings:
 * GDP → positive effect on ROE  
 * interest rates → positive effect on ROE  
 
-### Fixed Effects Model
+#### Fixed Effects Model
 
 ```text
 ROE ~ ... + C(b_id)
@@ -160,7 +161,7 @@ Purpose:
 Insight:
 * macro variables remain significant within lenders  
 
-### Interaction Effects
+#### Interaction Effects
 
 ```text
 ROE ~ ... + interest_rate * C(interest_rate_fixation)
@@ -169,7 +170,7 @@ ROE ~ ... + interest_rate * C(interest_rate_fixation)
 Insight:
 * fixed vs floating-rate environments differ in sensitivity to macro shocks  
 
-### Credit Growth
+#### Credit Growth
 
 ```text
 RTC_annual_growth ~ GDP_annual_growth + IR_change
@@ -178,7 +179,7 @@ Findings:
 * GDP growth → strong positive effect (procyclicality of credit)
 * interest rate changes → positive and significant effect
 
-## 6. Macroeconomic Time-Series Analysis
+### 6. Macroeconomic Time-Series Analysis
 
 Constructed variables:
 
@@ -188,21 +189,20 @@ Constructed variables:
 * RTC annual growth  
 * interest rate change  
 
-## 7. ADF Stationarity Test and Seasonal Decomposition
+### 7. ADF Stationarity Test and Seasonal Decomposition
 
 * GDP growth → stationary  
 * TC growth → stationary  
-* TC First Didderence → stationary  
+* TC First Difference → stationary  
 * RTC growth → weakly stationary  
 * interest rate change → strongly stationary  
 
-## Seasonal Decomposition
-Decomposed into:
-Trend
-Seasonality
-Residual
+Seasonal decomposition into:
+* trend
+* seasonality
+* residual
 
-## 8. Time-Series Models
+### 8. Time-Series Models
 
 Applied models:
 
@@ -212,26 +212,24 @@ Applied models:
 
 Selection criteria:
 * diagnostic checks using ACF and PACF plots
-* Akaike Information Criterion (AIC)  
-* Bayesian Information Criterion (BIC)  
+* Akaike Information Criterion (AIC)   
 
-## 9. Cross-Country Panel Analysis
+### 9. Cross-Country Panel Analysis
 
-## Cross-Country Panel Analysis
-
-### Fixed Effects and Random Effects Models (NPL)
+#### Fixed Effects and Random Effects Models (NPL)
 
 ```text
 NPLRatio ~ GDPgrowth + UnemplRate
 ```
 
 * country and time Fixed Effects included
+
 * clustered standard errors at country level
 
 * the Random Effects model assumes that unobserved country-specific effects are uncorrelated with the explanatory variables.
 This allows for more efficient estimation compared to Fixed Effects when the assumption holds.
 
-### Dynamic Panel Model (NPL Persistence)
+#### Dynamic Panel Model (NPL Persistence)
 
 ```text
 NPLRatio ~ GDPgrowth + UnemplRate + NPL_lag
@@ -241,7 +239,7 @@ Purpose:
 * captures persistence in non-performing loans
 * allows for dynamic adjustment of credit risk
 
-### Country-Specific Regressions
+#### Country-Specific Regressions
 
 Estimated using OLS on country-level subsamples (Germany, Denmark):
 
@@ -251,7 +249,7 @@ NPLRatio ~ GDPgrowth + UnemplRate
 Insight:
 * sensitivity of NPLs to macroeconomic conditions differs across countries
 
-### ROE and Macroeconomic Conditions (Panel FE)
+#### ROE and Macroeconomic Conditions (Panel FE)
 
 ```text
 ROE ~ GDPgrowth + UnemplRate
@@ -261,7 +259,7 @@ Findings:
 * unemployment → negative effect on profitability
 * GDP growth → weak positive effect
 
-### ROE with Lagged Macroeconomic Variables
+#### ROE with Lagged Macroeconomic Variables
 
 ```text
 ROE ~ GDPgrowth + UnemplRate + GDP_lag + Unemp_lag
@@ -270,7 +268,7 @@ ROE ~ GDPgrowth + UnemplRate + GDP_lag + Unemp_lag
 Purpose:
 * captures delayed effects of macroeconomic conditions on profitability
 
-### Dynamic ROE Model (Persistence)
+#### Dynamic ROE Model (Persistence)
 
 ```text
 ROE ~ GDPgrowth + UnemplRate + ROE_lag
@@ -279,7 +277,7 @@ ROE ~ GDPgrowth + UnemplRate + ROE_lag
 Purpose:
 * accounts for persistence in profitability over time
 
-## 10. Credit Exposure Analysis
+### 10. Credit Exposure Analysis
 
 Key features:
 
@@ -288,6 +286,7 @@ Key features:
 * aggregation by creditor country  
 * time evolution of exposures  
 
+---
 
 ## Key Economic Insights
 
@@ -317,7 +316,6 @@ The script generates:
 * `regression_summary_IR.html`
 * `regression_summary_IR_W.html`
 * `regression_summary_ROE.html`
-* `regression_summary_ROE_FE.html`
 * `regression_summary_ROE_IR_fix.html`
 * `regression_summary_RTC_growth_IRc.html`
 * `regression_summary_RTC_growth_IRc_W.html`
@@ -374,10 +372,10 @@ Inside `plots` folder:
 
 ## How to Run
 
-1. Open [**Google Colab**](https://colab.research.google.com/)  
-2. Upload the script
-3. Upload `data.xlsx` when prompted  
-4. Run the code
+1. Open [**Google Colab**](https://colab.research.google.com/).  
+2. Upload the script.
+3. Upload `data.xlsx` when prompted.  
+4. Run the code.
 
 ---
 
