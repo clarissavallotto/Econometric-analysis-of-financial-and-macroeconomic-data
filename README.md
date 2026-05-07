@@ -13,7 +13,7 @@ The analysis includes:
 * cross-sectional and panel regressions (OLS and Fixed Effects);
 * Hausman tests for Fixed vs Random Effects model selection;
 * time-series analysis (growth rates, ARIMA models, stationarity test, seasonal decomposition);
-* model selection using AIC information criterion;
+* model selection using Akaike Information Criterion (AIC);
 * credit exposure aggregation and lending risk analysis;
 * economic interpretation of results.
 
