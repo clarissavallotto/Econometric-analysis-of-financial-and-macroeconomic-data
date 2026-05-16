@@ -374,9 +374,8 @@ Inside `plots` folder:
 
 1. Open [**Google Colab**](https://colab.research.google.com/).  
 2. Upload the script.
-3. Upload `data.xlsx` when prompted.  
-4. Run the code.
-
+3. Run the code.
+4. Upload `data.xlsx` when prompted.
 ---
 
 ## Limitations
