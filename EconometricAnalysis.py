@@ -125,7 +125,7 @@ export_summary(model_ir_W, "regression_summary_IR_W.html")
 print("""
 The interest rate firms pay is significantly influenced by their profitability (p-value = 0.000 < 0.010) and size (p-value = 0.000 < 0.010).
 More profitable (higher ROA) and larger (higher total assets) firms get lower interest rates."
-There is no statistically significant relationship between the firm being publicly listed and the interest rate (p-value = 0.382).
+There is no statistically significant relationship between the firm being publicly listed and the interest rate (p-value = 0.387).
 
 Omitted Variable Bias:
 the model omits important variables that likely influence interest rates, such as the firm's leverage ratio and the term of the loan.
@@ -475,7 +475,7 @@ The coefficient on GDP growth (0.8551) is significant at the 1% level (p-value =
 suggesting that a 1 percentage point increase in the annual growth rate of real GDP is associated with a 0.86 percentage point increase in the annual growth rate of real total credit.
 This confirms that credit is procyclical.
 
-The coefficient on interest rate change (0.1788) is significant at the 5% level (p-value = 0.043 < 0.050).
+The coefficient on interest rate change (0.1782) is significant at the 5% level (p-value = 0.043 < 0.050).
 This implies that a 1 percentage point increase in the annual change of the nominal interest rate is associated with a 0.18 percentage point increase in the annual growth rate of real total credit.
 This positive relationship might seem counterintuitive, but it could reflect that interest rates are often increased by central banks during periods of strong economic growth and rising inflation, which are also periods when credit demand is high.
 
@@ -501,14 +501,14 @@ print("\nAnnual TC growth")
 print("ADF statistic:", result_TC_gr[0])
 print("p-value:", result_TC_gr[1])
 print("Critical values:", result_TC_gr[4])
-print("The Augmented Dickey-Fuller (ADF) test for the total credit to non-financial private sector annual growth rate series provides evidence of stationarity, as the null hypothesis of a unit root is rejected at the 5% significance level.")
+print("The Augmented Dickey-Fuller (ADF) test for the total credit to non-financial private sector annual growth rate series does not provide evidence of stationarity.")
 
 result_TC_diff = adfuller(dfC['TC_FD'])
 print("\nAnnual TC First Difference")
 print("ADF statistic:", result_TC_diff[0])
 print("p-value:", result_TC_diff[1])
 print("Critical values:", result_TC_diff[4])
-print("The Augmented Dickey-Fuller (ADF) test for the total credit to non-financial private sector First Difference series provides evidence of stationarity, as the null hypothesis of a unit root is rejected at the 5% significance level.")
+print("The Augmented Dickey-Fuller (ADF) test for the total credit to non-financial private sector First Difference series provides weak evidence of stationarity, as the null hypothesis of a unit root is rejected at the 10% significance level.")
 
 result_IRc = adfuller(dfC['IR_change'])
 print("\nAnnual interest rate change")
@@ -695,7 +695,7 @@ plt.show()
 
 print("""
 The PACF plot shows significant spikes up to lag 3, considering a 95% confidence level.
-Remark: PACF plot suggest candidate AR(p) model with p = 9.
+Remark: PACF plot suggest candidate AR(p) model with p = 3.
 """)
 
 print("""
@@ -795,7 +795,7 @@ print("Correlation:", corr_unemp)
 print("p-value:", p_unemp)
 
 print("""
-This indicates a moderate, statistically significant at the 5% level negative relationship between ROE and unemployment.
+This indicates a moderate, statistically significant at the 1% level negative relationship between ROE and unemployment.
 When unemployment rises, ROE tends to fall.
 Higher unemployment reflects weaker aggregate demand, which compresses firm revenues and margins.
 Lower demand reduces pricing power and efficiency, leading to weaker profitability.
